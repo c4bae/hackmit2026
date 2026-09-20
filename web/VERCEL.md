@@ -15,7 +15,7 @@ The backend needs:
 
 - `GOOGLE_MAPS_API_KEY`: server-restricted key with **Routes API** enabled.
 - `GOOGLE_MAPS_BROWSER_API_KEY`: key with **Places API (New)** enabled for address suggestions. It can be the same value used for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
-- `SHAPER_CORS_ORIGINS`: comma-separated exact frontend origins, including the production Vercel URL/custom domain.
-- `SHAPER_CORS_ORIGIN_REGEX` (optional): use `https://.*\.vercel\.app` if preview deployments must connect directly to the backend.
+- `SHAPER_CORS_ORIGINS`: comma-separated exact frontend origins. The default already includes `https://honkpack.vercel.app`; add any future custom domain here.
+- `SHAPER_CORS_ORIGIN_REGEX` (optional): override only when you control the matching preview domains; prefer exact entries in `SHAPER_CORS_ORIGINS`.
 
 Never commit real keys. After changing any `NEXT_PUBLIC_*` value, redeploy because Next.js embeds it at build time.
