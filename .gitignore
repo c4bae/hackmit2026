@@ -123,3 +123,6 @@ wandb/
 *.key
 secrets.yaml
 secrets.json
+# Local deployment metadata and generated TypeScript state
+.vercel/
+*.tsbuildinfo

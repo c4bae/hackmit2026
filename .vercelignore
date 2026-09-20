@@ -1,0 +1,17 @@
+.git/
+.agents/
+.codex/
+.conda/
+backend/
+data/
+models/
+scripts/
+tests/
+tmp/
+web/node_modules/
+web/.next/
+web/.vinext/
+web/.wrangler/
+web/dist/
+web/coverage/
+web/tsconfig.tsbuildinfo
