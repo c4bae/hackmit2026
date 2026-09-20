@@ -47,6 +47,15 @@ const API_BASE =
   process.env.NEXT_PUBLIC_SHAPER_API_URL?.replace(/\/$/, "") ||
   "/api/shaper";
 
+function websocketUrl(path: string) {
+  const base = new URL(API_BASE, window.location.origin);
+  base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
+  base.pathname = `${base.pathname.replace(/\/$/, "")}${path}`;
+  base.search = "";
+  base.hash = "";
+  return base.toString();
+}
+
 type Artifact = {
   kind: "image" | "model";
   url: string;
@@ -957,10 +966,8 @@ export function Studio() {
     };
 
     const connect = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const socket = new WebSocket(
-        protocol + "//" + window.location.host + API_BASE +
-        "/api/jobs/" + encodeURIComponent(id) + "/events/ws",
+        websocketUrl(`/api/jobs/${encodeURIComponent(id)}/events/ws`),
       );
       eventSocket.current = socket;
       socket.onmessage = (message) => {
