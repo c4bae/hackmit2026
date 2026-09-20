@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 import certifi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -548,6 +548,37 @@ async def stream_pairing_events(pair_id: str, request: Request):
     )
 
 
+@app.websocket("/api/pairings/{pair_id}/events/ws")
+async def stream_pairing_events_ws(websocket: WebSocket, pair_id: str) -> None:
+    pairing = PAIRINGS.get(pair_id)
+    if pairing is None:
+        await websocket.close(code=4404)
+        return
+    await websocket.accept()
+    cursor = 0
+    try:
+        while True:
+            if pairing.status not in {"submitted", "expired"} and time.time() >= pairing.expires_at:
+                pairing.emit(
+                    "expired",
+                    status="expired",
+                    title="QR code expired",
+                    detail="Create a new phone connection from the desktop.",
+                )
+            with pairing.lock:
+                pending = [event for event in pairing.events if event["id"] > cursor]
+                terminal = pairing.status in {"submitted", "expired"}
+            for event in pending:
+                cursor = event["id"]
+                await websocket.send_json(event)
+            if terminal and not pending:
+                await websocket.close(code=1000)
+                return
+            await asyncio.sleep(0.25)
+    except WebSocketDisconnect:
+        return
+
+
 @app.post("/api/jobs", status_code=202)
 async def create_job(
     video: UploadFile = File(...),
@@ -782,6 +813,30 @@ async def stream_events(job_id: str, request: Request):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.websocket("/api/jobs/{job_id}/events/ws")
+async def stream_job_events_ws(websocket: WebSocket, job_id: str) -> None:
+    job = JOBS.get(job_id)
+    if job is None:
+        await websocket.close(code=4404)
+        return
+    await websocket.accept()
+    cursor = 0
+    try:
+        while True:
+            with job.lock:
+                pending = [event for event in job.events if event["id"] > cursor]
+                terminal = job.status in {"complete", "error", "cancelled"}
+            for event in pending:
+                cursor = event["id"]
+                await websocket.send_json(event)
+            if terminal and not pending:
+                await websocket.close(code=1000)
+                return
+            await asyncio.sleep(0.25)
+    except WebSocketDisconnect:
+        return
 
 
 @app.get("/api/jobs/{job_id}/files/{asset_path:path}")
