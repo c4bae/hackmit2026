@@ -15,6 +15,7 @@ import numpy as np
 import torch
 import trimesh
 from PIL import Image, ImageDraw
+from scipy.spatial import cKDTree
 
 from scene_postprocessing import (
     _world_to_gltf,
@@ -76,6 +77,40 @@ def _asset_url(job: JobReporter, path: Path) -> str:
 def _check_cancelled(job: JobReporter) -> None:
     if job.cancelled:
         raise CancelledError("Job cancelled")
+
+
+def create_lightweight_mesh_preview(
+    source_path: Path,
+    output_path: Path,
+    *,
+    max_faces: int = 20_000,
+) -> Path:
+    """Create a colored low-poly GLB for responsive browser previews."""
+    try:
+        mesh = trimesh.load(source_path, force="mesh", process=False)
+        if not isinstance(mesh, trimesh.Trimesh) or len(mesh.faces) <= max_faces:
+            return source_path
+
+        source_vertices = np.asarray(mesh.vertices)
+        source_colors = np.asarray(mesh.visual.vertex_colors)
+        preview = mesh.simplify_quadric_decimation(face_count=max_faces)
+
+        if (
+            source_colors.ndim == 2
+            and len(source_colors) == len(source_vertices)
+            and len(preview.vertices)
+        ):
+            nearest = cKDTree(source_vertices).query(
+                np.asarray(preview.vertices),
+                k=1,
+            )[1]
+            preview.visual.vertex_colors = source_colors[nearest]
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        preview.export(output_path)
+        return output_path
+    except Exception:
+        return source_path
 
 
 def _contact_sheet(frames: list[np.ndarray], output_path: Path, columns: int = 4) -> None:
@@ -425,6 +460,10 @@ def run_reconstruction(
         mesh_paths.append(mesh_path)
         color_statistics.append(statistics)
         name = mesh_path.stem
+        preview_path = create_lightweight_mesh_preview(
+            mesh_path,
+            preview_dir / "objects" / mesh_path.name,
+        )
         item = metadata_by_name[name]
         progress = 0.46 + 0.37 * ((index + 1) / total)
         job.emit(
@@ -435,7 +474,7 @@ def run_reconstruction(
             detail=f"Object {index + 1} of {total} · {item['visible_views']} supporting views",
             artifact={
                 "kind": "model",
-                "url": _asset_url(job, mesh_path),
+                "url": _asset_url(job, preview_path),
                 "name": name,
                 "label": item["display_label"],
             },

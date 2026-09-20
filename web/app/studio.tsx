@@ -184,6 +184,7 @@ function InteractiveModel({
   onSelect,
   onHover,
   onTransforming,
+  onReady,
   resetSignal,
 }: {
   url: string;
@@ -193,6 +194,7 @@ function InteractiveModel({
   onSelect: (name: string | null) => void;
   onHover: (name: string | null) => void;
   onTransforming: (active: boolean) => void;
+  onReady: () => void;
   resetSignal: number;
 }) {
   const { scene } = useGLTF(url);
@@ -232,6 +234,10 @@ function InteractiveModel({
     clone.updateMatrixWorld(true);
     return clone;
   }, [scene]);
+  useEffect(() => {
+    onReady();
+  }, [model, onReady]);
+
   const [selected, setSelected] = useState<THREE.Object3D | null>(null);
   const [hovered, setHovered] = useState<THREE.Object3D | null>(null);
   const initial = useRef(
@@ -465,11 +471,13 @@ function SceneViewport({
   selectedName,
   onSelect,
   onHover,
+  onReady,
 }: {
   url: string;
   selectedName: string | null;
   onSelect: (name: string | null) => void;
   onHover: (name: string | null) => void;
+  onReady: () => void;
 }) {
   const [mode, setMode] = useState<TransformMode>("translate");
   const [scope, setScope] = useState<TransformScope>("object");
@@ -560,6 +568,7 @@ function SceneViewport({
             onSelect={onSelect}
             onHover={onHover}
             onTransforming={setTransforming}
+            onReady={onReady}
             resetSignal={resetSignal}
           />
         </Suspense>
@@ -897,6 +906,8 @@ export function Studio() {
   const [pipelinePreview, setPipelinePreview] = useState<PipelineEvent | null>(null);
   const [selectedPipelineStage, setSelectedPipelineStage] = useState("complete");
   const [truckVisited, setTruckVisited] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const markSceneReady = useCallback(() => setSceneReady(true), []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1046,6 +1057,7 @@ export function Studio() {
     setPipelinePreview(null);
     setSelectedPipelineStage("complete");
     setTruckVisited(false);
+    setSceneReady(false);
     window.history.replaceState(null, "", `?job=${id}`);
     connectEvents(id, eventsUrl, cacheHit);
   };
@@ -1143,7 +1155,7 @@ export function Studio() {
                       className={selectedName === object.name ? "selected" : ""}
                       onClick={() => setSelectedName(object.name)}
                     >
-                      <span className="item-thumb detected-item-thumb">{item ? <PackingItemThumbnail item={item} /> : <Cuboid size={15} />}</span>
+                      <span className="item-thumb detected-item-thumb">{sceneReady && item ? <PackingItemThumbnail item={item} /> : <Cuboid size={15} />}</span>
                       <span>
                         <strong>{object.label}</strong>
                         {item && <small>{item.width.toFixed(2)} × {item.height.toFixed(2)} × {item.depth.toFixed(2)} m · ~{weight?.kg.toFixed(1)} kg</small>}
@@ -1187,6 +1199,7 @@ export function Studio() {
                         selectedName={selectedName}
                         onSelect={setSelectedName}
                         onHover={setHoveredName}
+                        onReady={markSceneReady}
                       />
                     )}
                   </div>

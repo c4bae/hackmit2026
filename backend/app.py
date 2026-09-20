@@ -792,7 +792,11 @@ async def get_file(job_id: str, asset_path: str):
     if root not in path.parents or not path.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
     media_type, _ = mimetypes.guess_type(path.name)
-    return FileResponse(path, media_type=media_type or "application/octet-stream")
+    return FileResponse(
+        path,
+        media_type=media_type or "application/octet-stream",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.delete("/api/jobs/{job_id}")
