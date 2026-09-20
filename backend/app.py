@@ -630,7 +630,8 @@ async def autocomplete_map_place(q: str = ""):
     if len(query) < 2 or len(query) > 200:
         return {"suggestions": []}
     api_key = (
-        os.environ.get("GOOGLE_MAPS_BROWSER_API_KEY", "").strip()
+        os.environ.get("GOOGLE_MAPS_PLACES_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_MAPS_BROWSER_API_KEY", "").strip()
         or os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "").strip()
     )
     if not api_key:

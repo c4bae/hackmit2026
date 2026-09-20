@@ -14,7 +14,7 @@ Optional variables are documented in `.env.example`. Configure them for Producti
 The backend needs:
 
 - `GOOGLE_MAPS_API_KEY`: server-restricted key with **Routes API** enabled.
-- `GOOGLE_MAPS_BROWSER_API_KEY`: key with **Places API (New)** enabled for address suggestions. It can be the same value used for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+- `GOOGLE_MAPS_PLACES_API_KEY`: server-side key with **Places API (New)** enabled for address suggestions. It may equal `GOOGLE_MAPS_API_KEY` when that server key is authorized for both Routes and Places; do not reuse the browser-restricted key.
 - `SHAPER_CORS_ORIGINS`: comma-separated exact frontend origins. The default already includes `https://honkpack.vercel.app`; add any future custom domain here.
 - `SHAPER_CORS_ORIGIN_REGEX` (optional): override only when you control the matching preview domains; prefer exact entries in `SHAPER_CORS_ORIGINS`.
 
