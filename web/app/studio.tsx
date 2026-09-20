@@ -385,9 +385,22 @@ function brightPreviewClone(source: THREE.Object3D) {
   return clone;
 }
 
-function PreviewModel({ url }: { url: string }) {
+function PreviewModel({ url, focusObject = false }: { url: string; focusObject?: boolean }) {
   const { scene } = useGLTF(url);
-  const model = useMemo(() => brightPreviewClone(scene), [scene]);
+  const model = useMemo(() => {
+    const clone = brightPreviewClone(scene);
+    if (!focusObject) return clone;
+    clone.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(clone);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const longestSide = Math.max(size.x, size.y, size.z, 0.001);
+    const scale = 2.6 / longestSide;
+    clone.position.copy(center).multiplyScalar(-scale);
+    clone.scale.setScalar(scale);
+    clone.updateMatrixWorld(true);
+    return clone;
+  }, [scene, focusObject]);
   return (
     <Bounds fit clip observe margin={1.35}>
       <primitive object={model} />
@@ -395,7 +408,7 @@ function PreviewModel({ url }: { url: string }) {
   );
 }
 
-function ProcessingModelPreview({ url }: { url: string }) {
+function ProcessingModelPreview({ url, focusObject = false }: { url: string; focusObject?: boolean }) {
   return (
     <div className="scene-viewport processing-model-preview">
       <Canvas
@@ -413,7 +426,7 @@ function ProcessingModelPreview({ url }: { url: string }) {
         <hemisphereLight args={["#ffffff", "#dce8e3", 1.5]} />
         <directionalLight position={[5, 8, 3]} intensity={2.1} color="#ffffff" />
         <Suspense fallback={<ModelLoader />}>
-          <PreviewModel url={url} />
+          <PreviewModel url={url} focusObject={focusObject} />
         </Suspense>
         <OrbitControls makeDefault enableDamping dampingFactor={0.075} minDistance={0.5} maxDistance={12} />
       </Canvas>
@@ -835,7 +848,12 @@ function ArtifactPreview({ event }: { event?: PipelineEvent }) {
       </div>
     );
   }
-  return <ProcessingModelPreview url={absoluteUrl(event.artifact.url)} />;
+  return (
+    <ProcessingModelPreview
+      url={absoluteUrl(event.artifact.url)}
+      focusObject={event.stage === "shaper"}
+    />
+  );
 }
 
 function Inspector({
