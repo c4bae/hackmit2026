@@ -15,3 +15,16 @@ web/.wrangler/
 web/dist/
 web/coverage/
 web/tsconfig.tsbuildinfo
+.cache/
+checkpoints/
+dataset/
+docs/
+evaluation/
+experimental/
+input/
+model/
+output/
+postprocessing/
+preprocessing/
+resources/
+__pycache__/
