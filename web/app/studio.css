@@ -3861,16 +3861,32 @@ button {
   left: 12px;
   bottom: 12px;
   width: auto;
-  max-width: 250px;
-  min-height: 0;
-  padding: 7px 10px;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  max-width: min(300px, calc(100% - 24px));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 0 11px;
+  overflow: hidden;
   border-radius: 9px;
 }
-.artifact-caption span { font-size: 7px; line-height: 1; }
+.artifact-caption span {
+  flex: 0 0 auto;
+  font-size: 7px;
+  line-height: 1;
+}
 .artifact-caption strong {
-  margin-top: 3px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
   font-size: 11px;
-  line-height: 1.2;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Google Maps route preview and Places autocomplete. */

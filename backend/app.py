@@ -662,8 +662,7 @@ async def autocomplete_map_place(q: str = ""):
         return {"suggestions": []}
     api_key = (
         os.environ.get("GOOGLE_MAPS_PLACES_API_KEY", "").strip()
-        or os.environ.get("GOOGLE_MAPS_BROWSER_API_KEY", "").strip()
-        or os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
     )
     if not api_key:
         raise HTTPException(status_code=503, detail="Google Places API key is not configured")
