@@ -61,6 +61,18 @@ export function PhonePairingButton({
     let active = true;
     let socket: WebSocket | null = null;
     let retryTimer: number | null = null;
+    let pollTimer: number | null = null;
+
+    const continueOnDesktop = (jobId: string, eventsUrl?: string, cacheHit = false) => {
+      if (!active) return;
+      active = false;
+      socket?.close();
+      startedRef.current(
+        jobId,
+        eventsUrl || `/api/jobs/${jobId}/events`,
+        cacheHit,
+      );
+    };
 
     const connect = () => {
       if (!active) return;
@@ -70,9 +82,7 @@ export function PhonePairingButton({
           const event = JSON.parse(String(message.data)) as PairingEvent;
           setStatus(event.title);
           if (event.type === "submitted" && event.payload?.jobId) {
-            active = false;
-            socket?.close();
-            startedRef.current(
+            continueOnDesktop(
               event.payload.jobId,
               event.payload.eventsUrl || `/api/jobs/${event.payload.jobId}/events`,
               Boolean(event.payload.cacheHit),
@@ -94,10 +104,26 @@ export function PhonePairingButton({
     };
 
     connect();
+    const poll = async () => {
+      if (!active) return;
+      try {
+        const response = await fetch(`${API_BASE}/api/pairings/${encodeURIComponent(pairId)}`);
+        const payload = await response.json() as { status?: string; jobId?: string };
+        if (response.ok && payload.status === "submitted" && payload.jobId) {
+          continueOnDesktop(payload.jobId);
+          return;
+        }
+      } catch {
+        // The WebSocket remains primary; polling retries transient HTTP failures.
+      }
+      if (active) pollTimer = window.setTimeout(poll, 1000);
+    };
+    pollTimer = window.setTimeout(poll, 1000);
     return () => {
       active = false;
       socket?.close();
       if (retryTimer !== null) window.clearTimeout(retryTimer);
+      if (pollTimer !== null) window.clearTimeout(pollTimer);
     };
   }, [pairId]);
 
